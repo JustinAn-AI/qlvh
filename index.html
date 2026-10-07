@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#16181D">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>QLVH — Móng Cái</title>
+<style>
+  html,body{margin:0;background:#E9ECF0;font:16px ui-sans-serif,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:#16181D}
+  .hop{max-width:420px;margin:0 auto;padding:24px 16px}
+  h1{font-size:20px;margin:0 0 12px}
+  label{display:block;margin:14px 0 6px;font-weight:600}
+  input{width:100%;box-sizing:border-box;font-size:16px;padding:12px;border:1px solid #C9CFD8;border-radius:10px}
+  button{margin-top:18px;width:100%;font-size:17px;padding:14px;border:0;border-radius:12px;background:#12674A;color:#fff}
+  .mo{color:#5B6372;font-size:14px;margin-top:10px}
+  .loi{color:#A3231C}
+</style>
+<!-- QLVH · app cài điện thoại (PWA) · v1.0 · 07/10/2026 · QĐ-D165 (B)
+     Khung này chỉ lo: lưu giao diện + số liệu lần trước trong máy, hiện ngay khi mở,
+     rồi gọi cổng Apps Script (zz_v54) lấy số mới. Giao diện thật = Index.html của app hiện có. -->
+</head>
+<body>
+<div class="hop" id="khung"><h1>QLVH</h1><div class="mo" id="trangThai">Đang mở…</div></div>
+<script>
+(function () {
+  'use strict';
+  var CSS = "html,body{margin:0;background:#E9ECF0;font:16px ui-sans-serif,-apple-system,\"Segoe UI\",Roboto,Arial,sans-serif;color:#16181D} .hop{max-width:420px;margin:0 auto;padding:24px 16px} h1{font-size:20px;margin:0 0 12px} label{display:block;margin:14px 0 6px;font-weight:600} input{width:100%;box-sizing:border-box;font-size:16px;padding:12px;border:1px solid #C9CFD8;border-radius:10px} button{margin-top:18px;width:100%;font-size:17px;padding:14px;border:0;border-radius:12px;background:#12674A;color:#fff} .mo{color:#5B6372;font-size:14px;margin-top:10px} .loi{color:#A3231C}";
+  var CONG_MAC_DINH = 'https://script.google.com/macros/s/AKfycbyYcei_p4LostxboXINvDDUVjRvmJdkelJ6GvOVzQBlQYDzWzV5ZwSZNcxbI6Rpdyd2/exec';   // link cổng (không phải mã bí mật)
+  var K = { cfg: 'pwa_cfg', ui: 'pwa_ui', uima: 'pwa_ui_ma', dl: 'pwa_dl', qt: 'pwa_qt' };
+  function doc(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function luu(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  function docJ(k) { try { return JSON.parse(doc(k) || 'null'); } catch (e) { return null; } }
+
+  if ('serviceWorker' in navigator) { try { navigator.serviceWorker.register('sw.js'); } catch (e) {} }
+
+  var cfg = docJ(K.cfg);
+  if (!cfg || !cfg.url || !cfg.k || /[?&]caidat\b/.test(location.search)) { caiDat(cfg); return; }
+
+  /* ── gọi cổng ── */
+  function goi(fn, args, them) {
+    var body = { k: cfg.k, fn: fn, args: args || [] };
+    for (var x in (them || {})) body[x] = them[x];
+    return fetch(cfg.url, { method: 'POST', redirect: 'follow',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body) })
+      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function (j) {
+        if (!j.ok) { var e = new Error(j.loi || 'Cổng báo lỗi'); e.saiMa = /Sai mã/.test(j.loi || ''); throw e; }
+        if (fn === 'layDuLieu') luu(K.dl, JSON.stringify(j.r));
+        if (fn === 'V26_dsQuocTich') luu(K.qt, JSON.stringify(j.r));
+        return j.r;
+      });
+  }
+
+  /* ── google.script.run giả: cùng cách gọi như app cũ ── */
+  function taoRun(s, f, u) {
+    return new Proxy({}, { get: function (_, ten) {
+      if (ten === 'withSuccessHandler') return function (h) { return taoRun(h, f, u); };
+      if (ten === 'withFailureHandler') return function (h) { return taoRun(s, h, u); };
+      if (ten === 'withUserObject') return function (o) { return taoRun(s, f, o); };
+      return function () {
+        var args = Array.prototype.slice.call(arguments);
+        goi(String(ten), args).then(function (r) { if (s) s(r, u); },
+          function (e) { if (e.saiMa) return caiDat(cfg, e.message); if (f) f(e, u); });
+      };
+    } });
+  }
+  window.google = { script: { run: taoRun(null, null, undefined) } };
+  window.__PWA = { goi: goi, caiDat: function () { caiDat(cfg); } };
+
+  /* ── mở app ── */
+  var ui = doc(K.ui), dl = docJ(K.dl), qt = docJ(K.qt);
+  if (ui && dl) {
+    hien(ui, dl, qt, true);
+    capNhat();
+  } else {
+    $('trangThai').textContent = 'Lần đầu mở: đang tải giao diện và số liệu…';
+    goi('khoiDong', [], { ui_ma: '' }).then(function (r) {
+      luuKhoiDong(r);
+      hien(r.ui, r.dl, r.qt, false);
+    }, function (e) {
+      if (e.saiMa) return caiDat(cfg, e.message);
+      $('trangThai').innerHTML = '<span class="loi">Không mở được: ' + e.message + '</span><br>Kiểm tra mạng rồi mở lại.';
+    });
+  }
+
+  function luuKhoiDong(r) {
+    luu(K.dl, JSON.stringify(r.dl)); luu(K.qt, JSON.stringify(r.qt));
+    if (r.ui) { luu(K.ui, r.ui); luu(K.uima, r.ui_ma); }
+  }
+
+  /* Ghi giao diện app vào trang + số liệu sẵn có (window.__DL0/__QT0 — Index.html v3.1 đọc ngay). */
+  function hien(html, dl, qt, khoa) {
+    window.__DL0 = dl; window.__QT0 = qt;
+    var them = '<link rel="manifest" href="manifest.webmanifest"><meta name="apple-mobile-web-app-capable" content="yes">' +
+      '<style>#pwaKhoa{position:fixed;inset:0;z-index:99999;background:transparent}' +
+      '#pwaBang{position:fixed;left:0;right:0;bottom:0;z-index:100000;padding:10px 14px calc(10px + env(safe-area-inset-bottom));' +
+      'background:#1D4E89;color:#fff;font:15px ui-sans-serif,-apple-system,Roboto,Arial,sans-serif;text-align:center}' +
+      '#pwaBang.loi{background:#A3231C}</style>';
+    var i = html.indexOf('<head>');
+    html = i > -1 ? html.slice(0, i + 6) + them + html.slice(i + 6) : them + html;
+    document.open(); document.write(html); document.close();
+    if (khoa) khoaLai('Số lúc ' + ((dl && dl.bay_gio) || '').replace('T', ' ') + ' — đang cập nhật số mới…', false);
+  }
+
+  function khoaLai(chu, loi) {
+    function lam() {
+      var k = document.getElementById('pwaKhoa');
+      if (!k) { k = document.createElement('div'); k.id = 'pwaKhoa'; document.body.appendChild(k); }
+      var b = document.getElementById('pwaBang');
+      if (!b) { b = document.createElement('div'); b.id = 'pwaBang'; document.body.appendChild(b); b.onclick = function () { if (b.className === 'loi') capNhat(); }; }
+      b.textContent = chu; b.className = loi ? 'loi' : '';
+    }
+    if (document.body) lam(); else document.addEventListener('DOMContentLoaded', lam);
+  }
+  function moKhoa() {
+    ['pwaKhoa', 'pwaBang'].forEach(function (id) { var e = document.getElementById(id); if (e) e.parentNode.removeChild(e); });
+  }
+
+  function capNhat() {
+    khoaLai('Đang cập nhật số mới…', false);
+    goi('khoiDong', [], { ui_ma: doc(K.uima) || '' }).then(function (r) {
+      luuKhoiDong(r);
+      if (typeof window.napXong_ === 'function') window.napXong_(r.dl);
+      if (typeof window.napQTXong_ === 'function') window.napQTXong_(r.qt);
+      moKhoa();
+      if (r.ui && typeof window.bao === 'function') window.bao('Có bản giao diện mới — mở lại app để dùng.');
+    }, function (e) {
+      if (e.saiMa) return caiDat(cfg, e.message);
+      khoaLai('Chưa cập nhật được (' + e.message + '). Số đang xem là của lần trước — chạm để thử lại.', true);
+    });
+  }
+
+  function $(id) { return document.getElementById(id); }
+
+  function caiDat(c, loi) {
+    c = c || {};
+    document.open();
+    document.write('<!DOCTYPE html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">' +
+      '<link rel="manifest" href="manifest.webmanifest"><style>' + CSS + '</style></head><body><div class="hop">' +
+      '<h1>Cài đặt app QLVH</h1>' + (loi ? '<div class="loi">' + loi + '</div>' : '') +
+      '<label for="u">Địa chỉ cổng (link /exec bản triển khai «Bất kỳ ai»)</label><input id="u" inputmode="url" autocomplete="off">' +
+      '<label for="m">Mã bí mật</label><input id="m" autocomplete="off">' +
+      '<button id="ok">Lưu và mở app</button>' +
+      '<div class="mo">Chỉ nhập một lần trên điện thoại này. Mã không nằm trong mã trang.</div></div></body></html>');
+    document.close();
+    document.getElementById('u').value = c.url || CONG_MAC_DINH;
+    document.getElementById('m').value = c.k || '';
+    document.getElementById('ok').onclick = function () {
+      var u = document.getElementById('u').value.trim(), m = document.getElementById('m').value.trim();
+      if (!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(u)) { alert('Link phải dạng https://script.google.com/macros/s/…/exec'); return; }
+      if (!m) { alert('Chưa nhập mã'); return; }
+      luu(K.cfg, JSON.stringify({ url: u, k: m }));
+      location.href = location.pathname;
+    };
+  }
+})();
+</script>
+</body>
+</html>
