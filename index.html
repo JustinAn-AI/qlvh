@@ -18,14 +18,14 @@
   .mo{color:#5B6372;font-size:14px;margin-top:10px}
   .loi{color:#A3231C}
 </style>
-<!-- QLVH · app cài điện thoại (PWA) · v1.0 · 07/10/2026 · QĐ-D165 (B)
+<!-- QLVH · app cài điện thoại (PWA) · v1.1 · 07/10/2026 · QĐ-D165 (B)
      Khung này chỉ lo: lưu giao diện + số liệu lần trước trong máy, hiện ngay khi mở,
      rồi gọi cổng Apps Script (zz_v54) lấy số mới. Giao diện thật = Index.html của app hiện có. -->
 </head>
 <body>
 <div class="hop" id="khung"><h1>QLVH</h1><div class="mo" id="trangThai">Đang mở…</div></div>
 <script>
-(function () {
+function QLVH_BAT_DAU() {
   'use strict';
   var CSS = "html,body{margin:0;background:#E9ECF0;font:16px ui-sans-serif,-apple-system,\"Segoe UI\",Roboto,Arial,sans-serif;color:#16181D} .hop{max-width:420px;margin:0 auto;padding:24px 16px} h1{font-size:20px;margin:0 0 12px} label{display:block;margin:14px 0 6px;font-weight:600} input{width:100%;box-sizing:border-box;font-size:16px;padding:12px;border:1px solid #C9CFD8;border-radius:10px} button{margin-top:18px;width:100%;font-size:17px;padding:14px;border:0;border-radius:12px;background:#12674A;color:#fff} .mo{color:#5B6372;font-size:14px;margin-top:10px} .loi{color:#A3231C}";
   var CONG_MAC_DINH = 'https://script.google.com/macros/s/AKfycbyYcei_p4LostxboXINvDDUVjRvmJdkelJ6GvOVzQBlQYDzWzV5ZwSZNcxbI6Rpdyd2/exec';   // link cổng (không phải mã bí mật)
@@ -156,7 +156,9 @@
       location.href = location.pathname;
     };
   }
-})();
+}
+// chạy sau khi khung đọc xong, để document.open() thay TRỌN trang (không chèn vào giữa)
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', QLVH_BAT_DAU); else QLVH_BAT_DAU();
 </script>
 </body>
 </html>

@@ -1,5 +1,5 @@
 /* QLVH PWA · service worker · giữ khung app trong máy để mở tức thì. Đổi BAN khi cập nhật khung. */
-var BAN = 'qlvh-khung-v1';
+var BAN = 'qlvh-khung-v2';
 var TEP = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(BAN).then(function (c) { return c.addAll(TEP); }).then(function () { return self.skipWaiting(); }));
